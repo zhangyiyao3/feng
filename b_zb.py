@@ -27,12 +27,12 @@ def is_buy(symbol):
 
 if __name__ == '__main__':
     # 获取上证50最新成分股列表，这里可以换成自己的股票池
-    # symbols: List = get_index_stocks("000016.XSHG")
-    symbols: List = get_all_securities()
+    symbols: List = get_index_stocks("000985.XSHG")
+    # symbols: List = [get_all_securities().index]
     for symbol in symbols:
         # print("聚宽剩余调用次数：{}".format(get_query_count()))
         try:
-            signals=is_1buy(symbol)
+            signals=is_buy(symbol)
             if len(signals)>0:
                 print("{} - {}".format(symbol,signals))
         except:
