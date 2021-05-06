@@ -20,13 +20,14 @@ def is_buy(symbol):
         signals.append('一买')
     if c.signals['倒2九笔'] in [Signals.X9LA0.value]:
         signals.append('二买')
-    if c.signals['倒1五笔'] in [Signals.X5LB0.value, Signals.X5LB1.value]:
+    if c.signals['倒1五笔'] in [Signals.X5LB0.value]:
         signals.append('三买')
     return signals
 
 
 if __name__ == '__main__':
     # 获取上证50最新成分股列表，这里可以换成自己的股票池
+    # symbols: List = ["000985.XSHG"]
     symbols: List = get_index_stocks("000985.XSHG")
     # symbols: List = [get_all_securities().index]
     for symbol in symbols:
@@ -37,3 +38,7 @@ if __name__ == '__main__':
                 print("{} - {}".format(symbol,signals))
         except:
             print("{} - 执行失败".format(symbol))
+        print("聚宽剩余调用次数：{}".format(get_query_count()))
+        # signals=is_buy(symbol)
+        # if len(signals)>0:
+        #     print("{} - {}".format(symbol,signals))
