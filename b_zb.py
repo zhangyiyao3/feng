@@ -14,7 +14,22 @@ import tushare as ts
 assert czsc.__version__ == '0.6.10'
 
 # 使用第三方数据，只需要定义一个K线转换函数
-def format_kline(kline: pd.DataFrame) -> List[RawBar]:
+def format_kline_ts(kline: pd.DataFrame) -> List[RawBar]:
+    """
+    :param kline: Tushare 数据接口返回的K线数据
+    :return: 转换好的K线数据
+    """
+    bars = []
+    records = kline.to_dict('records')
+    for record in records:
+        # 将每一根K线转换成 RawBar 对象
+        bar = RawBar(symbol=record['ts_code'], dt=pd.to_datetime(record['trade_date']), open=record['open'],
+                     close=record['close'], high=record['high'], low=record['low'], vol=record['vol'])
+        bars.append(bar)
+    return bars
+
+# 使用第三方数据，只需要定义一个K线转换函数
+def format_kline_bs(kline: pd.DataFrame) -> List[RawBar]:
     """
     :param kline: Tushare 数据接口返回的K线数据
     :return: 转换好的K线数据
@@ -53,7 +68,7 @@ def tshare():
             df = ts.pro_bar(ts_code=symbol, adj='qfq', asset="E",
                             start_date=start_date.strftime("%Y%m%d"),
                             end_date=end_date.strftime("%Y%m%d"))
-            bars = format_kline(df)
+            bars = format_kline_ts(df)
             signals=is_buy(bars)
             if len(signals)>0:
                 print("{} - {}".format(symbol,signals))
@@ -78,18 +93,37 @@ def jquan():
     print("聚宽剩余调用次数：{}".format(get_query_count()))
 
 def bstock():
-    # symbols: List = get_index_stocks("000985.XSHG")
-    symbols: List = ["000985.XSHG"]
-    for symbol in symbols:
-        # print("聚宽剩余调用次数：{}".format(get_query_count()))
+    bs.login()
+    # 获取指定日期的指数、股票列表信息
+    end_date = datetime.now()
+    e_date = end_date - timedelta(days=10)
+    start_date = end_date - timedelta(days=1000)
+    start_date, end_date = datetime.strftime(start_date, '%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
+    stock_rs = bs.query_all_stock(e_date.strftime('%Y-%m-%d'))
+    stock_df = stock_rs.get_data()
+    # print(stock_df["code"])
+    #针对股票列表，逐个处理：获取历史数据生成dataframe、格式化、传入
+    # for symbol in ["sh.000001",'sh.000002']:
+    for symbol in stock_df["code"]:
+        data_df = pd.DataFrame()
+        k_rs = bs.query_history_k_data_plus(symbol,"date,code,open,high,low,close,volume", start_date, end_date)
+        data_df = data_df.append(k_rs.get_data())
+        #格式化bars
+        bars = []
+        records = data_df.to_dict('records')
+        for record in records:
+            # 将每一根K线转换成 RawBar 对象
+            bar = RawBar(symbol=record['code'], dt=pd.to_datetime(record['date']), open=float(record['open']),
+                        close=float(record['close']), high=float(record['high']), low=float(record['low']), vol=float(record['volume']))
+            bars.append(bar)
         try:
-            bars = get_kline(symbol, freq="D", end_date=datetime.now(), count=1000)
-            signals=is_buy(symbol)
+            signals=is_buy(bars)
             if len(signals)>0:
                 print("{} - {}".format(symbol,signals))
         except Exception as e:
             traceback.print_exc()
             print("{} 执行失败 - {}".format(symbol, e))
+    bs.logout()
 
 def bb():
     # 登陆系统
@@ -116,9 +150,44 @@ def bb():
     # 登出系统
     bs.logout()
 
+def download_data():
+    bs.login()
+    # 获取指定日期的指数、股票数据
+    stock_rs = bs.query_all_stock()
+    stock_df = stock_rs.get_data()
+    data_df = pd.DataFrame()
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=1000)
+    start_date, end_date=datetime.strftime(start_date,'%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
+    for code in ["sh.600000"]:
+    # for code in stock_df["code"]:
+        k_rs = bs.query_history_k_data_plus(code,"date,code,open,high,low,close,volume", start_date, end_date)
+        data_df = data_df.append(k_rs.get_data())
+    bars = []
+    records = data_df.to_dict('records')
+    for record in records:
+        # 将每一根K线转换成 RawBar 对象
+        bar = RawBar(symbol=record['code'], dt=pd.to_datetime(record['date']), open=record['open'],
+                     close=record['close'], high=record['high'], low=record['low'], vol=record['volume'])
+        bars.append(bar)
+    bs.logout()
+    print(bars)
+
 if __name__ == '__main__':
     # tshare()
     # jquan()
-    # bstock()
-    bb()
+    bstock()
+    # bb()
+    # download_data()
+"""     first = []
+    last = []
+    lists_more = [1, 2, 3, 4, 5, 6]
+
+    for i in lists_more:
+        first.append(i)
+        last.append(first)
+        print('before',first)
+        first = []
+        print('after',first)
+    print(first) """
 
