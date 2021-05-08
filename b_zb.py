@@ -104,25 +104,27 @@ def bstock():
     # print(stock_df["code"])
     #针对股票列表，逐个处理：获取历史数据生成dataframe、格式化、传入
     # for symbol in ["sh.000001",'sh.000002']:
+    bars = []
     for symbol in stock_df["code"]:
-        data_df = pd.DataFrame()
-        k_rs = bs.query_history_k_data_plus(symbol,"date,code,open,high,low,close,volume", start_date, end_date)
-        data_df = data_df.append(k_rs.get_data())
-        #格式化bars
-        bars = []
-        records = data_df.to_dict('records')
-        for record in records:
-            # 将每一根K线转换成 RawBar 对象
-            bar = RawBar(symbol=record['code'], dt=pd.to_datetime(record['date']), open=float(record['open']),
-                        close=float(record['close']), high=float(record['high']), low=float(record['low']), vol=float(record['volume']))
-            bars.append(bar)
         try:
+            data_df = pd.DataFrame()
+            k_rs = bs.query_history_k_data_plus(symbol,"date,code,open,high,low,close,volume", start_date, end_date)
+            data_df = data_df.append(k_rs.get_data())
+            #格式化bars
+            records = data_df.to_dict('records')
+            for record in records:
+                # 将每一根K线转换成 RawBar 对象
+                bar = RawBar(symbol=record['code'], dt=pd.to_datetime(record['date']), open=float(record['open']),
+                            close=float(record['close']), high=float(record['high']), low=float(record['low']), vol=float(record['volume']))
+                bars.append(bar)
             signals=is_buy(bars)
             if len(signals)>0:
                 print("{} - {}".format(symbol,signals))
         except Exception as e:
             traceback.print_exc()
             print("{} 执行失败 - {}".format(symbol, e))
+        finally:
+            bars.clear()
     bs.logout()
 
 def bb():
