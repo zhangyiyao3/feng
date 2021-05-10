@@ -10,9 +10,11 @@ import traceback
 import baostock as bs
 import pandas as pd
 import tushare as ts
+import struct
 
-assert czsc.__version__ == '0.6.10'
-
+assert czsc.__version__ == '0.7.2'
+TDX_DIR = r"D:\new_tdxqh"  # 首先要设置通达信的安装目录
+    
 # 使用第三方数据，只需要定义一个K线转换函数
 def format_kline_ts(kline: pd.DataFrame) -> List[RawBar]:
     """
@@ -48,11 +50,11 @@ def is_buy(bars:List[RawBar]) -> List:
     c = CZSC(bars, freq="日线")
     signals=[]
     # 在这里判断是否有买入形态
-    if c.signals['倒1九笔'] in [Signals.X9LA0.value]:
+    if c.signals['倒1形态'] in [Signals.LA0.value]:
         signals.append('一买')
-    if c.signals['倒2九笔'] in [Signals.X9LA0.value]:
+    if c.signals['倒2形态'] in [Signals.LA0.value]:
         signals.append('二买')
-    if c.signals['倒1五笔'] in [Signals.X5LB0.value]:
+    if c.signals['倒1形态'] in [Signals.LI0.value]:
         signals.append('三买')
     return signals
 
@@ -175,10 +177,82 @@ def download_data():
     bs.logout()
     print(bars)
 
+# 从通达信目录读入数据
+def get_data_from_tdxfile(stock_code, type) -> List[RawBar]:
+    '''
+    stock_code:股票代码 600667
+    type：市场代码，sh沪市，sz深市
+    '''
+    bars = []
+    filepath = TDX_DIR + r'\vipdoc\\' + type + r'\lday\\' + type + stock_code + '.day'
+    with open(filepath, 'rb') as f:
+        while True:
+            stock_date = f.read(4)
+            stock_open = f.read(4)
+            stock_high = f.read(4)
+            stock_low = f.read(4)
+            stock_close = f.read(4)
+            stock_amount = f.read(4)
+            stock_vol = f.read(4)
+            stock_reservation = f.read(4)
+            if not stock_date:
+                break
+            stock_date = struct.unpack("l", stock_date)  # 4字节 如20091229
+            stock_open = struct.unpack("l", stock_open)  # 开盘价*100
+            stock_high = struct.unpack("l", stock_high)  # 最高价*100
+            stock_low = struct.unpack("l", stock_low)  # 最低价*100
+            stock_close = struct.unpack("l", stock_close)  # 收盘价*100
+            stock_amount = struct.unpack("f", stock_amount)  # 成交额
+            stock_vol = struct.unpack("l", stock_vol)  # 成交量
+            stock_reservation = struct.unpack("l", stock_reservation)  # 保留值
+            date_format = datetime.strptime(str(stock_date[0]), '%Y%M%d')  # 格式化日期
+            date_format = date_format.strftime('%Y-%M-%d')
+
+            bar = RawBar(symbol=stock_code, dt=pd.to_datetime(date_format), open=stock_open[0] / 100,
+                         close=stock_close[0] / 100.0, high=stock_high[0] / 100.0, low=stock_low[0] / 100.0,
+                         vol=stock_vol[0])
+            bars.append(bar)
+        return bars
+
+def tdx():
+    # 找出沪市6开头的，中三买的票
+    rootdir = TDX_DIR + r"\vipdoc\sh\lday"
+ 
+    list = os.listdir(rootdir)  # 列出文件夹下所有的目录与文件
+    print(list)
+    for i in range(0, len(list)):
+        try:
+            scode=list[i][2:8]
+            if scode.startswith("6"):
+                bars = get_data_from_tdxfile(scode, 'sh')
+                signals=is_buy(bars)
+                if len(signals)>0:
+                    print("{}{} - {}".format('sh',scode,signals))
+        except Exception as e:
+                traceback.print_exc()
+                print("{} 执行失败 - {}".format(scode, e))
+
+    # 找出深圳中0开头的三买的票
+    rootdir = TDX_DIR + r"\vipdoc\sz\lday"
+    list = os.listdir(rootdir)  # 列出文件夹下所有的目录与文件
+    for i in range(0, len(list)):
+        try:
+            scode=list[i][2:8]
+            if scode.startswith("6"):
+                bars = get_data_from_tdxfile(scode, 'sz')
+                signals=is_buy(bars)
+                if len(signals)>0:
+                    print("{}{} - {}".format('sz',scode,signals))   
+        except Exception as e:
+            traceback.print_exc()
+            print("{} 执行失败 - {}".format(scode, e))
+
+
 if __name__ == '__main__':
+    tdx()
     # tshare()
     # jquan()
-    bstock()
+    # bstock()
     # bb()
     # download_data()
 """     first = []
