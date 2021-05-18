@@ -11,6 +11,8 @@ import baostock as bs
 import pandas as pd
 import tushare as ts
 import struct
+import openpyxl
+from openpyxl.reader.excel import load_workbook
 
 assert czsc.__version__ == '0.7.2'
 TDX_DIR = r"D:\new_tdxqh"  # 首先要设置通达信的安装目录
@@ -51,11 +53,11 @@ def is_buy(bars:List[RawBar]) -> List:
     signals=[]
     # 在这里判断是否有买入形态
     if c.signals['倒1形态'] in [Signals.LA0.value]:
-        signals.append('一买')
-    if c.signals['倒2形态'] in [Signals.LA0.value]:
-        signals.append('二买')
+        signals.append('B1')
+    if c.signals['倒3形态'] in [Signals.LA0.value]:
+        signals.append('B2')
     if c.signals['倒1形态'] in [Signals.LI0.value]:
-        signals.append('三买')
+        signals.append('B3')
     return signals
 
 def tshare():
@@ -109,6 +111,7 @@ def bstock():
     bars = []
     for symbol in stock_df["code"]:
         try:
+            pd.m
             data_df = pd.DataFrame()
             k_rs = bs.query_history_k_data_plus(symbol,"date,code,open,high,low,close,volume", start_date, end_date)
             data_df = data_df.append(k_rs.get_data())
@@ -219,15 +222,15 @@ def tdx():
     rootdir = TDX_DIR + r"\vipdoc\sh\lday"
  
     list = os.listdir(rootdir)  # 列出文件夹下所有的目录与文件
-    print(list)
+    # print(list)
     for i in range(0, len(list)):
         try:
             scode=list[i][2:8]
-            if scode.startswith("6"):
-                bars = get_data_from_tdxfile(scode, 'sh')
-                signals=is_buy(bars)
-                if len(signals)>0:
-                    print("{}{} - {}".format('sh',scode,signals))
+            # if scode.startswith("6"):
+            bars = get_data_from_tdxfile(scode, 'sh')
+            signals=is_buy(bars)
+            if len(signals)>0:
+                print("{}{} - {}".format('sh',scode,signals))
         except Exception as e:
                 traceback.print_exc()
                 print("{} 执行失败 - {}".format(scode, e))
@@ -238,32 +241,94 @@ def tdx():
     for i in range(0, len(list)):
         try:
             scode=list[i][2:8]
-            if scode.startswith("6"):
-                bars = get_data_from_tdxfile(scode, 'sz')
-                signals=is_buy(bars)
-                if len(signals)>0:
-                    print("{}{} - {}".format('sz',scode,signals))   
+            # if scode.startswith("0"):
+            bars = get_data_from_tdxfile(scode, 'sz')
+            signals=is_buy(bars)
+            if len(signals)>0:
+                print("{}{} - {}".format('sz',scode,signals))   
         except Exception as e:
             traceback.print_exc()
             print("{} 执行失败 - {}".format(scode, e))
 
+def tdx_excel():
+    # 找出沪市6开头的，中三买的票
+    rootdir = TDX_DIR + r"\vipdoc\sh\lday"
+    signals_list=[] #用来存储所有证券的信号，一只证券可能存在多个信号
+    list = os.listdir(rootdir)  # 列出文件夹下所有的目录与文件
+    for i in range(0, len(list)):
+        try:
+            symbol=list[i][2:8]
+            # if symbol.startswith("60000"):
+            bars = get_data_from_tdxfile(symbol, 'sh')
+            signals=is_buy(bars)
+            if len(signals) > 0: #若存在信号，把证券及其信号，存入signals_list
+                signals_list.append({symbol+'.sh':signals})  
+                print("{}{} - {}".format('sh',symbol,signals))
+        except Exception as e:
+                traceback.print_exc()
+                print("{} 执行失败 - {}".format(symbol, e))
 
+    # 找出深圳中0开头的三买的票
+    rootdir = TDX_DIR + r"\vipdoc\sz\lday"
+    list = os.listdir(rootdir)  # 列出文件夹下所有的目录与文件
+    for i in range(0, len(list)):
+        try:
+            symbol=list[i][2:8]
+            # if symbol.startswith("00000"):
+            bars = get_data_from_tdxfile(symbol, 'sz')
+            signals=is_buy(bars)
+            if len(signals) > 0:
+                signals_list.append({symbol+'.sz':signals})  
+                print("{}{} - {}".format('sz',symbol,signals))   
+        except Exception as e:
+            traceback.print_exc()
+            print("{} 执行失败 - {}".format(symbol, e))
+    write_excel(signals_list) #把信号列表，写入excel
+
+def write_excel(signals_list):
+    '''
+    :param sheet:sheet的名称
+    :return:
+    '''
+    addr='zb.xlsx'
+    #文件是否存在，若不存在创建，并初始化sheet，若存在打开文件写入信号
+    if os.path.exists(addr) and os.path.isfile(addr):
+        wb = openpyxl.load_workbook(addr)        
+    else:
+        wb = openpyxl.Workbook(addr)
+        wb.create_sheet('B1')
+        wb.create_sheet('B2')
+        wb.create_sheet('B3')
+        wb.create_sheet('B23')
+    for i in signals_list:  #每只证券的信号为signals，是map类型
+        cur_date=datetime.now().strftime('%Y-%m-%d')
+        symbol=list(i.keys())[0]
+        signals=i[symbol] #signals是list类型
+        if len(signals) > 1:
+            sheet = wb['B23']
+            row=[cur_date,symbol]
+            row.extend(signals)
+            sheet.append(row)                            
+        elif signals[0] == 'B1': #信号是一买
+            sheet=wb['B1']
+            sheet.append([cur_date,symbol,'B1'])
+        elif signals[0] == 'B2': #信号是二买
+            sheet=wb['B2']
+            sheet.append([cur_date,symbol,'B2'])
+        elif signals[0] == 'B3': #信号是三买
+            sheet=wb['B3']
+            sheet.append([cur_date,symbol,'B3'])
+    wb.save(addr)
+    print("写入数据成功！")
+
+   
 if __name__ == '__main__':
-    tdx()
+    # tdx()
+    tdx_excel()
     # tshare()
     # jquan()
     # bstock()
     # bb()
     # download_data()
-"""     first = []
-    last = []
-    lists_more = [1, 2, 3, 4, 5, 6]
 
-    for i in lists_more:
-        first.append(i)
-        last.append(first)
-        print('before',first)
-        first = []
-        print('after',first)
-    print(first) """
 
