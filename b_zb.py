@@ -60,17 +60,19 @@ def format_kline_bs(kline: pd.DataFrame) -> List[RawBar]:
     return bars
 
 
-def is_buy(bars: List[RawBar]) -> List:
+def is_buy(bars: List[RawBar]) -> {}:
     """判断一个股票现在是否有买入信号，没有则返回[]"""
     c = CZSC(bars, freq="日线")
-    signals = []
+    signals = {}
     # 在这里判断是否有买入形态
     if c.signals['倒1形态'] in [Signals.LA0.value]:
-        signals.append('B1')
+        signals['B1'] = 'B1'
     if c.signals['倒3形态'] in [Signals.LA0.value]:
-        signals.append('B2')
+        signals['B2'] = 'B2'
     if c.signals['倒1形态'] in [Signals.LI0.value]:
-        signals.append('B3')
+        signals['B3'] = 'B3'
+    if len(signals) != 0:
+        signals['ubil'] = c.signals['未完成笔长度']
     return signals
 
 
@@ -303,7 +305,7 @@ def tdx_excel():
     for i in range(0, len(list)):
         try:
             symbol = list[i][2:8]
-            # if symbol.startswith("60000"):
+            # if symbol.startswith("6000"):
             bars = get_data_from_tdxfile(symbol, 'sh')
             signals = is_buy(bars)
             if len(signals) > 0:  #若存在信号，把证券及其信号，存入signals_list
@@ -333,10 +335,11 @@ def tdx_excel():
 
 def write_excel(signals_list):
     '''
-    :param sheet:sheet的名称
+    :param signals_list形如[{'000001.sz':{'B1':'B1','ubil','3'}},{'000002.sz':{'B3':'B3','ubil','5'}}]
     :return:
     '''
     addr = 'zb.xlsx'
+    cur_date = datetime.now().strftime('%Y-%m-%d')
     #文件是否存在，若不存在创建，并初始化sheet，若存在打开文件写入信号
     if os.path.exists(addr) and os.path.isfile(addr):
         wb = openpyxl.load_workbook(addr)
@@ -346,24 +349,26 @@ def write_excel(signals_list):
         wb.create_sheet('B2')
         wb.create_sheet('B3')
         wb.create_sheet('B23')
-    for i in signals_list:  #每只证券的信号为signals，是map类型
-        cur_date = datetime.now().strftime('%Y-%m-%d')
+    for i in signals_list:  #signals_list是列表类型，每只证券的信号为signals，是map类型
         symbol = list(i.keys())[0]
-        signals = i[symbol]  #signals是list类型
-        if len(signals) > 1:
+        signals = i[symbol]  #signals是map类型
+        row = [cur_date, symbol]
+        if len(signals) > 2:  #多个信号出现
             sheet = wb['B23']
-            row = [cur_date, symbol]
-            row.extend(signals)
-            sheet.append(row)
-        elif signals[0] == 'B1':  #信号是一买
+            row.append(
+                signals.get('B1', '') + signals.get('B2', '') +
+                signals.get('B3', ''))
+        elif signals.get('B1') == 'B1':  #信号是一买
             sheet = wb['B1']
-            sheet.append([cur_date, symbol, 'B1'])
-        elif signals[0] == 'B2':  #信号是二买
+            row.append('B1')
+        elif signals.get('B2') == 'B2':  #信号是二买
             sheet = wb['B2']
-            sheet.append([cur_date, symbol, 'B2'])
-        elif signals[0] == 'B3':  #信号是三买
+            row.append('B2')
+        elif signals.get('B3') == 'B3':  #信号是三买
             sheet = wb['B3']
-            sheet.append([cur_date, symbol, 'B3'])
+            row.append('B3')
+        row.append(signals['ubil'])
+        sheet.append(row)
     wb.save(addr)
     print("写入数据成功！")
 
