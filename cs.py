@@ -25,8 +25,8 @@ def bstock():
     stock_df = stock_rs.get_data()
     # print(stock_df["code"])
     #针对股票列表，逐个处理：获取历史数据生成dataframe、格式化、传入
-     bars = []
-     for symbol in ["sh.600610",'sh.600614']:
+    bars = []
+    for symbol in ["sh.600610",'sh.600614']:
         try:
             data_df = pd.DataFrame()
             k_rs = bs.query_history_k_data_plus(symbol,"date,code,open,high,low,close,volume", start_date, end_date)
