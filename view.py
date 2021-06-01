@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from czsc1.trader import CzscTrader
+from myczsc.mytrader import CzscTrader
 from data.tdx import get_data_from_tdxfile
 import sys
 sys.path.insert(0, ".")
@@ -22,7 +22,7 @@ def by_czsc():
 
 
 def by_CzscFactors():
-    ct = CzscTrader(symbol="300803", max_count=800, end_date=datetime.now())
+    ct = CzscTrader(symbol="000001", max_count=800, end_date=datetime.now())
     # max_count 参数控制获取的K线数量
     # end_date  参数控制获取K线的截止时间，便于查看历史分析结果，默认为当下时间
     # 可视化分析结果
@@ -34,5 +34,5 @@ def by_CzscFactors():
     # print(ct.run_selector())
 
 if __name__ == '__main__':
-    # by_czsc()
-    by_CzscFactors()
+    by_czsc()
+    # by_CzscFactors()

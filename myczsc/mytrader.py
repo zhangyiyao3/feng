@@ -30,7 +30,7 @@ class CzscTrader:
             max_count=max_count * 2,
             freqs=['1分钟', '5分钟', '15分钟', '30分钟', '60分钟', '日线'])
         for freq in kg.freqs:
-            print(symbol, freq_inv[freq],max_count)
+            # print(symbol, freq_inv[freq],max_count)
             quote = client.bars(symbol,
                                 frequency=freq_inv[freq],
                                 offset=max_count)
