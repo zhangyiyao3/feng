@@ -1,4 +1,3 @@
-
 freq_map = {
     "7": "1分钟",
     "0": "5分钟",
@@ -11,3 +10,5 @@ freq_map = {
 }
 
 freq_inv = {v: k for k, v in freq_map.items()}
+
+

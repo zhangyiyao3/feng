@@ -14,6 +14,7 @@ class My_CZSC(CZSC):
         self.signals.update(self.get_my_signals())
 
     def get_my_signals(self):
+        '''扩展CZSC类的get_signals得到的信号'''
         s = OrderedDict({})
         s.update({
             "B1": Signals.Other.value,
@@ -44,5 +45,6 @@ class My_CZSC(CZSC):
         if signal[-2:] == 'B1':
             s['B2'] = signal
 
-        # s=get_finance_overview('000001')
+        #财务数据概况
+
         return s
