@@ -24,3 +24,8 @@ def get_finance_overview(market, symbol) -> OrderedDict:
 
 if __name__ == '__main__':
     print(get_finance_overview('sz', '000001'))
+    print(get_finance_overview('sh', '600000'))
+    # with api.connect(ip, port):
+    #     # slist=api.get_security_list(1, 0)
+    #     finance_info = api.get_finance_info(1, '600000')
+    # print(finance_info)
