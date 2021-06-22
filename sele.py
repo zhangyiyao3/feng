@@ -180,3 +180,5 @@ if __name__ == '__main__':
     # print(get_finance_factors('sh', '600012', 5))
     # print(get_finance_factors('sh', '515220', 5))
     select()
+    # print(get_tec_factors('sh', '515220', 5))
+

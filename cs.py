@@ -10,8 +10,13 @@ import traceback
 import baostock as bs
 import pandas as pd
 import tushare as ts
+from pytdx.hq import TdxHq_API
+from mootdx.quotes import Quotes
+from mootdx import consts
+# import QUANTAXIS as QA
+from mootdx.affair import Affair
 
-assert czsc.__version__ == '0.6.10'
+assert czsc.__version__ == '0.7.2'
 
 
 def bstock():
@@ -40,7 +45,57 @@ def bstock():
     bs.logout()
 
 
+def ptdx():
+    api = TdxHq_API()
+    with api.connect('119.147.212.81', 7709):
+        df=api.to_df(api.get_security_list(1, 10000))
+        print(df)
+
+
+def mtdx():
+    client = Quotes.factory(market='std')
+    symbol = client.stocks(market=consts.MARKET_SH)
+    print(symbol)
+
+def qa():
+    QA.QA_util_log_info('日线数据')
+    QA.QA_util_log_info('不复权')
+    data=QA.QAFetch.QATdx.QA_fetch_get_stock_day('000001','2017-01-01','2017-01-31')
+    print(data)
+    print(QA.QA_fetch_stock_block_adv('000001'))
+    res = QA.QA_fetch_financial_report(
+        ['000001', '600100'],
+        ['2017-03-31', '2017-06-30', '2018-12-31', '2019-12-31', '2020-12-31'])
+    print(res)
+    res_adv=QA.QA_fetch_financial_report_adv('600000','2017-01-01','2018-05-01')
+    print(res_adv.data)
+    fds=QA.QA_DataStruct_Financial(res)
+    print(fds.get_key('600100', '2020-12-31', 'ROE'))
+    print(fds.get_report_by_date('600100', '2020-12-31'))
+
+
+from mootdx.reader import Reader
+
+
+def mtdx_fin():
+    print(Affair.files())
+    Affair.fetch(downdir='output', filename='gpcw20210331.zip')
+    data = Affair.parse(downdir='output', filename='gpcw20210331.zip')
+    result = Affair.parse(downdir='output', filename='gpcw20210331.zip')
+    result.to_csv('gpcw20210331.csv')
+
+def mtdx_blk():
+    reader = Reader.factory(market='std', tdxdir=r"D:\new_tdxqh")
+    # 分组格式
+    print(reader.block(symbol='block_zs', group=True))
+    print(reader.block(symbol='incon', group=True))
+
+
 if __name__ == '__main__':
     # tshare()
     # jquan()
-    bstock()
+    # bstock()
+    # ptdx()
+    # mtdx()
+    # qa()
+    mtdx_blk()

@@ -6,6 +6,7 @@ from czsc.analyze import CZSC, check_bi, check_fxs, remove_include
 from czsc.enum import Direction, Mark, Signals
 from czsc.objects import BI, NewBar, RawBar
 from pytdx.hq import TdxHq_API
+import numpy as np
 
 
 class My_CZSC(CZSC):
@@ -25,9 +26,13 @@ class My_CZSC(CZSC):
         self.bi_list: List[BI] = []
         self.symbol = bars[0].symbol
         self.freq = freq
+        self.close = np.array([])
 
         for bar in bars:
-            self.update(bar)
+            self.update(
+                bar
+            )  #重写了CZSC的update方法，扩展了更新close数组的操作，删除了每次更新bar都重新获取信号的功能，改为手工获取信号
+
         #为屏蔽原库中每个update方法最后都会调用get_signals方法，不再调用super().__init__初始化
         self.signals = self.get_signals()
         self.signals.update(self.get_my_signals())
@@ -73,6 +78,10 @@ class My_CZSC(CZSC):
 
         :param bar: 单根K线对象
         """
+        
+        #更新close数组，此为扩展CZSC的功能
+        self.close = np.append(self.close, bar.close)
+
         # 更新K线序列
         if not self.bars_raw or bar.dt != self.bars_raw[-1].dt:
             self.bars_raw.append(bar)
@@ -116,6 +125,8 @@ class My_CZSC(CZSC):
                     s_index = i
                     break
             self.bars_raw = self.bars_raw[s_index:]
+
+
 
     def __update_bi(self):
         bars_ubi = self.bars_ubi

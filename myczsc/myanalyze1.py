@@ -9,13 +9,6 @@ from pytdx.hq import TdxHq_API
 import numpy as np
 
 
-def bars_to_array(bars: List[RawBar]):
-    close_list = []
-    for bar in bars:
-        close_list.append(bar.close)
-    return np.array(close_list)
-
-
 class My_CZSC(CZSC):
     def __init__(self, bars: List[RawBar], freq: str, max_bi_count=30):
         """
@@ -33,15 +26,16 @@ class My_CZSC(CZSC):
         self.bi_list: List[BI] = []
         self.symbol = bars[0].symbol
         self.freq = freq
-        self.close = np.array()
-        
+        self.close = np.array([])
+
         for bar in bars:
-            self.update(bar)
+            self.update(
+                bar
+            )  #重写了CZSC的update方法，扩展了更新close数组的操作，删除了每次更新bar都重新获取信号的功能，改为手工获取信号
+
         #为屏蔽原库中每个update方法最后都会调用get_signals方法，不再调用super().__init__初始化
         self.signals = self.get_signals()
         self.signals.update(self.get_my_signals())
-        # self.close = bars_to_array(bars)
-        
 
     def get_my_signals(self):
         '''扩展CZSC类的get_signals得到的信号，区分B1、B2的详细情况'''
@@ -127,6 +121,9 @@ class My_CZSC(CZSC):
                     s_index = i
                     break
             self.bars_raw = self.bars_raw[s_index:]
+
+        #更新close数组，此为扩张CZSC的功能
+        self.close = np.append(self.close, bar.close)
 
     def __update_bi(self):
         bars_ubi = self.bars_ubi

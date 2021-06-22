@@ -172,6 +172,6 @@ def select():
 
 
 if __name__ == '__main__':
-    print(get_finance_factors('sh', '600816', 5))
+    # print(get_finance_factors('sh', '600816', 5))
     # print(get_finance_factors('sh', '515220', 5))
-    # select()
+    select()

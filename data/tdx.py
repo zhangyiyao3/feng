@@ -5,6 +5,7 @@ import traceback
 from typing import List
 
 from czsc.objects import RawBar
+import numpy as np
 import pandas as pd
 
 TDX_DIR = r"D:\new_tdxqh"  # 首先要设置通达信的安装目录
@@ -53,6 +54,8 @@ def get_data_from_tdxfile(stock_code, type) -> List[RawBar]:
     '''
     bars = []
     filepath = TDX_DIR + r'\vipdoc\\' + type + r'\lday\\' + type + stock_code + '.day'
+    # close = np.array([])
+
     with open(filepath, 'rb') as f:
         while True:
             stock_date = f.read(4)
@@ -85,6 +88,8 @@ def get_data_from_tdxfile(stock_code, type) -> List[RawBar]:
                          low=stock_low[0] / 100.0,
                          vol=stock_vol[0])
             bars.append(bar)
+            # close=np.append(close,stock_close[0] / 100.0)
+        # print('get_data_from_tdxfile',close,close.size)
         return bars
 
 
